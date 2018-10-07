@@ -1,7 +1,7 @@
 package renameonclose_test
 
 import (
-	roc "github.com/james-antill/renameonclose"
+	roc "github.com/james-antill/rename-on-close"
 )
 
 func ExampleCreate() {
