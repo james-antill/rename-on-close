@@ -2,7 +2,6 @@ package renameonclose
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -113,7 +112,6 @@ func (f *File) IsDifferent() (bool, error) {
 			return false, nil
 		}
 		if !bytes.Equal(b1[:n1], b2[:n1]) {
-			fmt.Println("JDBG b", b1, b2)
 
 			return true, nil
 		}
