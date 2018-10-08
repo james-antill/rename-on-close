@@ -11,8 +11,17 @@ import (
 func TestDiff(t *testing.T) {
 	content1 := []byte("one file content 1")
 	content2 := []byte("two file content 22")
+	for i := 0; i < 4; i++ {
+		content2 = append(content2, content2...)
+	}
 	content3 := []byte("three file content 333")
+	for i := 0; i < 8; i++ {
+		content3 = append(content3, content3...)
+	}
 	content4 := []byte("four file content 4444")
+	for i := 0; i < 16; i++ {
+		content4 = append(content4, content4...)
+	}
 
 	if ioutil.WriteFile("t1", content1, 0700) != nil {
 		t.Errorf("Fail: Can't write t1")
