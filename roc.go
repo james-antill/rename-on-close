@@ -1,6 +1,9 @@
 package renameonclose
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -20,6 +23,13 @@ type File struct {
 func Create(name string) (f *File, err error) {
 
 	base, fname := filepath.Split(name)
+	if base == "" {
+		base = "."
+	}
+	if fname == "" {
+		return nil, &os.PathError{Op: "open", Path: name, Err: os.ErrInvalid}
+	}
+
 	tmpfile, err := ioutil.TempFile(base, fname)
 	if err != nil {
 		return nil, err
@@ -28,7 +38,7 @@ func Create(name string) (f *File, err error) {
 	return &File{File: tmpfile, oname: name}, nil
 }
 
-// Renamed the name of the file we will rename to
+// Renamed returns the name of the file we will rename to
 func (f *File) Renamed() string {
 	return f.oname
 }
@@ -39,13 +49,78 @@ func (f *File) Sync() error {
 	return nil
 }
 
-// Commit the file via. a sync/close/rename.
-func (f *File) Commit() error {
+// CloseRename closes the file, maybe after sync'ing, and then rename's it.
+func (f *File) CloseRename() error {
 	f.rename = true
 	return f.Close()
 }
 
-// Close the file, maybe after sync'ing, and then either rename or delete
+const chunckSize = 4 // 4 * 1024
+
+// IsDifferent is the new file different to the file it will replace.
+// On errors it returns true for differences.
+func (f *File) IsDifferent() (bool, error) {
+	nstat, err := f.Stat()
+	if err != nil {
+		return true, err
+	}
+	ostat, err := os.Stat(f.oname)
+	if err != nil {
+		return true, err
+	}
+	if nstat.Size() != ostat.Size() {
+		return true, nil
+	}
+
+	of, err := os.Open(f.oname)
+	if err != nil {
+		return true, err
+	}
+	defer of.Close()
+
+	var off int64
+	b1store := make([]byte, chunckSize)
+	b2store := make([]byte, chunckSize)
+	for {
+		n1, err1 := f.ReadAt(b1store, off)
+		off += int64(n1)
+		if n1 > 0 && err1 == io.EOF {
+			err1 = nil
+		}
+
+		n2, err2 := of.Read(b2store)
+
+		if err1 != nil || err2 != nil {
+
+			if err1 == io.EOF && err2 == io.EOF {
+				return false, nil
+			} else if err1 == io.EOF {
+				return true, nil
+			} else if err2 == io.EOF {
+				return true, nil
+			} else {
+				err := err1
+				if err != nil {
+					err = err2
+				}
+				return true, err
+			}
+		}
+
+		b1 := b1store[:n1]
+		b2 := b2store[:n2]
+		if n1 != n2 { // Bad ?
+			return false, nil
+		}
+		if !bytes.Equal(b1[:n1], b2[:n1]) {
+			fmt.Println("JDBG b", b1, b2)
+
+			return true, nil
+		}
+	}
+}
+
+// Close the file and delete
 func (f *File) Close() error {
 
 	if f == nil {
@@ -75,6 +150,7 @@ func (f *File) Close() error {
 			os.Remove(name)
 			return err
 		}
+		return nil
 	}
 
 	return os.Remove(name)

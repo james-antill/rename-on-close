@@ -17,12 +17,12 @@ func ExampleCreate() {
 		panic(err) // This will also, try to, remove the file
 	}
 
-	if err := nf.Commit(); err != nil { // Rename over the original file
+	if err := nf.CloseRename(); err != nil { // Rename over the original file
 		panic(err) // Dito. any failure and you keep the original.
 	}
 }
 
-func ExampleCreate_sync() {
+func ExampleCreate_diff_sync() {
 	content := []byte("new sync file's content")
 	nf, err := roc.Create("abcd")
 	if err != nil {
@@ -37,7 +37,11 @@ func ExampleCreate_sync() {
 
 	_ = nf.Sync() // This makes a sync happen at close time, so no error can happen here
 
-	if err := nf.Commit(); err != nil { // Rename over the original file, after sync'ing
-		panic(err) // Note: nf.File.Sync() fails then you keep the original.
+	if d, _ := nf.IsDifferent(); d {
+		// Rename over the original file, after sync'ing
+		if err := nf.CloseRename(); err != nil {
+			panic(err) // Note: nf.File.Sync() fails then you keep the original.
+		}
 	}
+	// If the files are the same then the defer'd close will clean up
 }
