@@ -55,7 +55,7 @@ func (f *File) CloseRename() error {
 	return f.Close()
 }
 
-const chunckSize = 4 // 4 * 1024
+const chunckSize = 4 * 1024
 
 // IsDifferent is the new file different to the file it will replace.
 // On errors it returns true for differences.
