@@ -22,7 +22,7 @@ func ExampleCreate() {
 	}
 }
 
-func ExampleCreate_diff_sync() {
+func ExampleCreate_diffsync() {
 	content := []byte("new sync file's content")
 	nf, err := roc.Create("abcd")
 	if err != nil {
